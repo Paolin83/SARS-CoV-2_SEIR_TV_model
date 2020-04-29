@@ -18,7 +18,8 @@ Corresponding author: [Paolo Girardi, paolo.girardi@unipd.it](mailto://paolo.gir
 
 (analysis updated on 29 April 2020, 22.00)  
 
-This repository contained the functions and the statistical tools employed in the manuscript.
+This repository contained the functions and the statistical tools employed in the manuscript.  
+
 The analysis can be found here  
 [a SEIR analysis Italy](main_analysis.md)  
 (html R-Markdown can be downloaded [here](main_analysis.Rmd))  
