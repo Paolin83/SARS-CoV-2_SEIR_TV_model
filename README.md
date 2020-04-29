@@ -7,10 +7,10 @@ A SEIR model with time-varying coefficients for analysing the SARS-CoV-2 epidemi
      Università di Padova
      Via Venezia 8, 
      I-35131 Padua, Italy  
-  2. Dipartimento di Scienze Ambientali, Informatica e Statistica,
-     Università "Ca' Foscari" di Venezia,
-     Campus Scientifico, Via Torino 155,
-     I-30172 Mestre-Venezia, Italy
+  2. Dipartimento di Scienze Ambientali, Informatica e Statistica,  
+     Università "Ca' Foscari" di Venezia,  
+     Campus Scientifico, Via Torino 155,  
+     I-30172 Mestre-Venezia, Italy  
   
 
 Corresponding author: [Paolo Girardi, paolo.girardi@unipd.it](mailto://paolo.girardi@unipd.it)
