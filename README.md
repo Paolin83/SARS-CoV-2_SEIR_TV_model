@@ -4,9 +4,9 @@ A SEIR model with time-varying coefficients for analysing the SARS-CoV-2 epidemi
 [Paolo Girardi](mailto://paolo.girardi@unipd.it)(1), [Carlo Gaetan](mailto://gaetan@unive.it)(2)
 
   1. Department of Developmental and Social Psychology  
-     Università di Padova
-     Via Venezia 8, 
-     I-35131 Padua, Italy  
+     Università di Padova  
+     Via Venezia 8,  
+     I-35131 Padua, Italy   
   2. Dipartimento di Scienze Ambientali, Informatica e Statistica,  
      Università "Ca' Foscari" di Venezia,  
      Campus Scientifico, Via Torino 155,  
