@@ -40,7 +40,7 @@ cases.
 License
 -------
 
-The package is distributed on CRAN at [this web page](https://cran.r-project.org/web/packages/spMC/index.html) under the terms of the [GENERAL PUBLIC LICENSE (>= 2)](https://cran.r-project.org/web/licenses/GPL-2). The package spMC version 0.3.6.3153 was edited in order to satisfy the requirement for the manuscript submission to *Computer and Geosciences* (Elsevier). This specific version will never appear on the CRAN servers, but it can be available on the Elsevier servers with the same terms and conditions specified by the [GENERAL PUBLIC LICENSE (>= 2)](https://cran.r-project.org/web/licenses/GPL-2).
+The code is freely distributed. If you find this code useful, please consider citing this repository.
 
 
 
