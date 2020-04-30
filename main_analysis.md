@@ -91,8 +91,8 @@ source("functions.R")
 #from raw to analysed data (cut to the selected window)
 ############Italy
 names(Italy)[1]<-"t"
-#correct the inital number of new cases
-Italy$nuovi_positivi[1]<-(221-155)
+#correct the inital number of new cases. 155 day before was taken by GHU for Italy 23/02
+Italy$nuovi_positivi[1]<-(Italy$totale_positivi[1]-155)
 days_I<-dim(Italy)[1]
 #Date 
 Italy$date<-seq(as.Date("2020-02-24"),as.Date("2020-02-24")+dim(Italy)[1]-1,1)
@@ -105,13 +105,14 @@ colnames(Italy) <- make.unique(names(Italy))
 g1_1<-ggplot(Italy, aes(x=date, y=nuovi_positivi)) +
         geom_line()+theme_light() +
         geom_line(aes(y =  a+ totale_positivi*b), linetype=2,color = "red") +
-        scale_y_continuous("New COVID-19 cases", sec.axis = sec_axis(~ (. - a)/b, name = "Current COVID-19 cases")) +ggtitle("Italy") 
+        scale_y_continuous("New cases", sec.axis = sec_axis(~ (. - a)/b, name = "Current cases")) +ggtitle("Italy") 
 ############US
 US$nuovi_positivi<-c(0,diff(US$Confirmed))
 US$totale_positivi<-US$Confirmed-US$Recovered-US$Deaths
 US$nuovi_removed<-c(0,diff(US$Recovered+US$Deaths))
 US$removed<-US$Recovered+US$Deaths
 #since 05/03 >200 cases, since day 44
+
 US<-US[-c(1:43),]
 days_U<-dim(US)[1]
 US$t<-1:days_U
@@ -125,7 +126,7 @@ colnames(US) <- make.unique(names(US))
 g1_2<-ggplot(US, aes(date, nuovi_positivi)) +
         geom_line()+theme_light() +
         geom_line(aes(y =  a+ totale_positivi*b),linetype=2, color = "red") +
-        scale_y_continuous("New COVID-19 cases", sec.axis = sec_axis(~ (. - a)/b, name = "Current COVID-19 cases")) +ggtitle("US") 
+        scale_y_continuous("New cases", sec.axis = sec_axis(~ (. - a)/b, name = "Current cases")) +ggtitle("US") 
 ############US
 Iceland$nuovi_positivi<-c(0,diff(Iceland$Confirmed))
 Iceland$totale_positivi<-Iceland$Confirmed-Iceland$Recovered-Iceland$Deaths
@@ -145,7 +146,7 @@ colnames(Iceland) <- make.unique(names(Iceland))
 g1_3<-ggplot(Iceland, aes(date, nuovi_positivi)) +
         geom_line()+theme_light() +
         geom_line(aes(y =  a+ totale_positivi*b),linetype=2, color = "red") +
-        scale_y_continuous("New COVID-19 cases", sec.axis = sec_axis(~ (. - a)/b, name = "Current COVID-19 cases"))+ggtitle("Iceland") 
+        scale_y_continuous("New cases", sec.axis = sec_axis(~ (. - a)/b, name = "Current cases"))+ggtitle("Iceland") 
 g1_1
 ```
 
@@ -164,8 +165,8 @@ g1_3
 ![](main_analysis_files/figure-gfm/load%20datasets-3.png)<!-- -->
 
 ``` r
-pdf("figure1.pdf",height = 4,width = 10)
-grid.arrange(g1_2,g1_1,g1_3,nrow=1)
+pdf("figure1.pdf")
+grid.arrange(g1_2,g1_1,g1_3,nrow=3)
 dev.off.crop()
 ```
 
@@ -181,7 +182,7 @@ status0_Italy<-c(S=(pop_Italy-(5.2*Italy$nuovi_positivi[1]+155+0)),
 pop_US<-329227746
 status0_US<-c(S=(329227746-(5.2*US$nuovi_positivi[1]+155+0)),
                  E=5.2*US$nuovi_positivi[1]
-                 ,I=155,R=0)
+                 ,I=142,R=7)
 #Iceland
 pop_Iceland<-364124
 status0_Iceland<-c(S=(364124-(5.2*Iceland$nuovi_positivi[1]+1+0)),
@@ -202,8 +203,10 @@ This part may take some minutes.
 ``` r
 #SEIR_TV function
 #(STATE, DAYS OF OBS, INITIAL PAR (gamma, psi coefs), SEIR PAR, SEIR STATUS, number of knots, number of days forward)
+# number of knots was defined by means of CLIC index in sandwich() function
+#nknots 5 for Italy and US, 3 for Iceland
 est_italy<-SEIR_TV(Italy,days_I,par_start=c(-3,seq(0,-4,len=5)),theta0_Italy,status0_Italy,nknots=5,ahead=ahead)
-est_US<-SEIR_TV(US,days_U,par_start=c(-4.5,seq(1,-4,len=5)),theta0_US,status0_US,nknots=5,ahead=ahead)
+est_US<-SEIR_TV(US,days_U,par_start=c(-4.4,seq(1,-4,len=5)),theta0_US,status0_US,nknots=5,ahead=ahead)
 est_Iceland<-SEIR_TV(Iceland,days_Ic,par_start=c(-2.5,seq(0,-5,len=3)),theta0_Iceland,status0_Iceland,nknots=3,ahead=ahead)
 ```
 
@@ -303,7 +306,7 @@ a_italy<-sandwich(est_italy$fit, parameters=theta0_Italy ,initials=status0_Italy
         obs=est_italy$obs,X=est_italy$X, type ="poisson",kernel.type = "NW",lag=5,obs2 = est_italy$obs2)
 #varcov_italy<-diag(est_italy$X%*%a_italy$varcov[-1,-1]%*%t(est_italy$X))
 varcov.hac_italy<<-diag(est_italy$X.new%*%a_italy$varcov.hac[-1,-1]%*%t(est_italy$X.new))
-####### We considered only an HAC varvoc matrix, however a comparison can be made
+####### We considered only an HAC varcov matrix, however a comparison can be made
 alpha<-0.05;q<-qnorm(1-alpha/2)
 #gamma hat
 gamma_hat_It
@@ -332,19 +335,19 @@ a_US<-sandwich(est_US$fit, parameters=theta0_US ,initials=status0_US,
         obs=est_US$obs,X=est_US$X, type ="poisson",kernel.type = "NW",lag=5,obs2 = est_US$obs2)
 #varcov_US<-diag(est_Iceland$X%*%a_iceland$varcov[-1,-1]%*%t(est_Iceland$X))
 varcov.hac_US<-diag(est_US$X.new%*%a_US$varcov.hac[-1,-1]%*%t(est_US$X.new))
-####### We considered only an HAC varvoc matrix, however a comparison can be made
+####### We considered only an HAC varcov matrix, however a comparison can be made
 #gamma hat
 gamma_hat_US
 ```
 
-    ## [1] 0.01159877
+    ## [1] 0.01151017
 
 ``` r
 #95% IC
 inv.logit(est_US$fit$estimate[1]+c(-1,1)*q*sqrt(a_US$varcov.hac[1,1]))
 ```
 
-    ## [1] 0.01022137 0.01315931
+    ## [1] 0.009985604 0.013264393
 
 ``` r
 #beta hat and 95CI
@@ -360,7 +363,7 @@ a_iceland<-sandwich(est_Iceland$fit, parameters=theta0_Iceland ,initials=status0
         obs=est_Iceland$obs,X=est_Iceland$X, type ="poisson",kernel.type = "NW",lag=5,obs2 = est_Iceland$obs2)
 #varcov_iceland<-diag(est_Iceland$X%*%a_iceland$varcov[-1,-1]%*%t(est_Iceland$X))
 varcov.hac_iceland<<-diag(est_Iceland$X.new%*%a_iceland$varcov.hac[-1,-1]%*%t(est_Iceland$X.new))
-####### We considered only an HAC varvoc matric, however a comparison can be made
+####### We considered only an HAC varcov matric, however a comparison can be made
 #gamma hat
 gamma_hat_Ic
 ```
@@ -393,48 +396,37 @@ out.new_Ic <- ode(y=status0_Iceland, times=times.new_Ic, func=SEIR.model, parms=
 fig2_it<-data.frame(Beta=betat_It,
                     Date=seq(Italy$date[1]-1,Italy$date[1]+days_I+ahead-1,1)
                       ,lower_bound=lower_italy,upper_bound=upper_italy,
-                    type=c(rep("Estimates",days_I+1),rep("Evolution",ahead)))
-g2_1<-ggplot(fig2_it, aes(x = Date, y = Beta)) +
-        geom_smooth(aes(x=Date, y=Beta, ymax=upper_bound, ymin=lower_bound), 
-                    data=fig2_it, stat='identity',col="grey")+
-        ylab(expression(beta(t))) +scale_color_manual(values = c("black", "blue"))+
-        geom_line(aes(color = type, linetype = type))+ylim(0, 1)+
-        theme_light() + theme(legend.title=element_blank())+
-        geom_vline(xintercept = fig2_it$Date[days_I+1],lty=4,color="lightblue")
-fig2_it<-data.frame(Beta=betat_It,
-                    Date=seq(Italy$date[1]-1,Italy$date[1]+days_I+ahead-1,1)
-                      ,lower_bound=lower_italy,upper_bound=upper_italy,
-                    type=c(rep("Estimates",days_I+1),rep("Evolution",ahead)))
+                    Italy=c(rep("Estimate",days_I+1),rep("Evolution",ahead)))
 g2_it<-ggplot(fig2_it, aes(x = Date, y = Beta)) +
         geom_smooth(aes(x=Date, y=Beta, ymax=upper_bound, ymin=lower_bound), 
                     data=fig2_it, stat='identity',col="grey")+
-        ylab(expression(beta(t))) +scale_color_manual(values = c("black", "blue"))+
-        geom_line(aes(color = type, linetype = type))+ylim(0, 1)+
-        theme_light() + theme(legend.title=element_blank())+
+        ylab(expression(beta(t))) +scale_color_manual(values = c("black", "red"))+
+        geom_line(aes(color = Italy, linetype = Italy))+ylim(0, 1)+
+        theme_light() + 
         geom_vline(xintercept = fig2_it$Date[days_I+1],lty=4,color="lightblue")
 
 fig2_us<-data.frame(Beta=betat_US,
                     Date=seq(US$date[1]-1,US$date[1]+days_U+ahead-1,1)
                       ,lower_bound=lower_US,upper_bound=upper_US,
-                    type=c(rep("Estimates",days_U+1),rep("Evolution",ahead)))
+                    US=c(rep("Estimates",days_U+1),rep("Evolution",ahead)))
 g2_us<-ggplot(fig2_us, aes(x = Date, y = Beta)) +
         geom_smooth(aes(x=Date, y=Beta, ymax=upper_bound, ymin=lower_bound), 
                     data=fig2_us, stat='identity',col="grey")+
-        ylab(expression(beta(t))) +scale_color_manual(values = c("black", "blue"))+
-        geom_line(aes(color = type, linetype = type))+ylim(0, 1)+
-        theme_light() + theme(legend.title=element_blank())+
+        ylab(expression(beta(t))) +scale_color_manual(values = c("black", "red"))+
+        geom_line(aes(color = US, linetype = US))+ylim(0, 1)+
+        theme_light() +
         geom_vline(xintercept = fig2_us$Date[days_U+1],lty=4,color="lightblue")
 
 fig2_ic<-data.frame(Beta=betat_Ic,
                     Date=seq(Iceland$date[1]-1,Iceland$date[1]+days_Ic+ahead-1,1)
                       ,lower_bound=lower_iceland,upper_bound=upper_iceland,
-                    type=c(rep("Estimates",days_Ic+1),rep("Evolution",ahead)))
+                    Iceland=c(rep("Estimate",days_Ic+1),rep("Evolution",ahead)))
 g2_ic<-ggplot(fig2_ic, aes(x = Date, y = Beta)) +
         geom_smooth(aes(x=Date, y=Beta, ymax=upper_bound, ymin=lower_bound), 
                     data=fig2_ic, stat='identity',col="grey")+
-        ylab(expression(beta(t))) +scale_color_manual(values = c("black", "blue"))+
-        geom_line(aes(color = type, linetype = type))+ylim(0, 1)+
-        theme_light() + theme(legend.title=element_blank())+
+        ylab(expression(beta(t))) +scale_color_manual(values = c("black", "red"))+
+        geom_line(aes(color = Iceland, linetype = Iceland))+ylim(0, 1)+
+        theme_light() + 
         geom_vline(xintercept = fig2_ic$Date[days_Ic+1],lty=4,color="lightblue")
 grid.arrange(g2_us,g2_it,g2_ic)
 ```
@@ -455,39 +447,36 @@ fig3_it<-data.frame(n=c(out.new_It[-1,3],out.new_It[-1,4],out.new_It[-1,5]),
 g3_it<-ggplot(fig3_it, aes(y=n,x=Date)) +
         geom_line(aes(color = State, linetype = State)) + 
         scale_color_manual(values = c("black","red","green"))+ 
-        ylab("E(t), I(t), R(t)")+
+        ylab("State value (n)")+ggtitle("Italy") +
         geom_vline(xintercept = fig3_it$Date[days_I],lty=4,color="lightblue")+
         geom_point(data=Italy,aes(x=date, y=totale_positivi, fill= "Y(t)"), colour="red",alpha = 3/10)+
         geom_hline(yintercept = 0,col="grey") +
         theme_light() +
-        theme(axis.title.y=element_blank(),
-              legend.title=element_blank()) +
+        theme(legend.title=element_blank()) +
         theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))
 fig3_us<-data.frame(n=c(out.new_US[-1,3],out.new_US[-1,4],out.new_US[-1,5]),
                     Date=rep(fig2_us$Date[-1],3),State=c(rep("E",days_U+ahead),rep("I",days_U+ahead),rep("R",days_U+ahead)))
 g3_us<-ggplot(fig3_us, aes(y=n,x=Date)) +
         geom_line(aes(color = State, linetype = State)) + 
         scale_color_manual(values = c("black","red","green"))+ 
-        ylab("E(t), I(t), R(t)")+
+        ylab("State value (n)")+ggtitle("US") +
         geom_vline(xintercept = fig3_us$Date[days_U],lty=4,color="lightblue")+
         geom_point(data=US,aes(x=date, y=totale_positivi, fill= "Y(t)"), colour="red",alpha = 3/10)+
         geom_hline(yintercept = 0,col="grey") +
         theme_light() +
-        theme(axis.title.y=element_blank(),
-              legend.title=element_blank()) +
+        theme(legend.title=element_blank()) +
         theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))
 fig3_ic<-data.frame(n=c(out.new_Ic[-1,3],out.new_Ic[-1,4],out.new_Ic[-1,5]),
                     Date=rep(fig2_ic$Date[-1],3),State=c(rep("E",days_Ic+ahead),rep("I",days_Ic+ahead),rep("R",days_Ic+ahead)))
 g3_ic<-ggplot(fig3_ic, aes(y=n,x=Date)) +
         geom_line(aes(color = State, linetype = State)) + 
         scale_color_manual(values = c("black","red","green"))+ 
-        ylab("E(t), I(t), R(t)")+
+        ylab("State value (n)")+ggtitle("Iceland") +
         geom_vline(xintercept = fig3_ic$Date[days_Ic],lty=4,color="lightblue")+
         geom_point(data=Iceland,aes(x=date, y=totale_positivi, fill= "Y(t)"), colour="red",alpha = 3/10)+
         geom_hline(yintercept = 0,col="grey") +
         theme_light() +
-        theme(axis.title.y=element_blank(),
-              legend.title=element_blank()) +
+        theme(legend.title=element_blank()) +
         theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))
 grid.arrange(g3_us,g3_it,g3_ic)
 ```
@@ -503,34 +492,33 @@ dev.off.crop()
 ## Figure 4
 
 ``` r
-fig4_it<-data.frame(sE=out.new_It[-1,3]/5.2,Date=fig2_it$Date[-1],type="E")
+fig4_it<-data.frame(sE=out.new_It[,3]/5.2,Date=fig2_it$Date,type="E")
 g4_it<-ggplot(fig4_it, aes(y=sE,x=Date)) +geom_line( aes(y=sE,x=Date,col=type))+
         scale_colour_manual("", values="black",labels = c(expression(sigma*E(t))))+
-        geom_vline(xintercept = fig2_it$Date[days_I],lty=4,color="lightblue")+
-        ylab(expression(sigma*E(t)))+
+        geom_vline(xintercept = fig2_it$Date[days_I+1],lty=4,color="lightblue")+
+        ylab(expression(sigma*E(t)))+ggtitle("Italy") +
         geom_point(data=Italy,aes(x=date, y=nuovi_positivi, fill= "Z(t)"), colour="black",alpha = 3/10)+
         geom_hline(yintercept = 0,col="grey") +
         theme_light() + theme(axis.title.y=element_blank(),
                               legend.title=element_blank()) + 
         theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))
-fig4_us<-data.frame(sE=out.new_US[-1,3]/5.2,Date=fig2_us$Date[-1],type="E")
+fig4_us<-data.frame(sE=out.new_US[,3]/5.2,Date=fig2_us$Date,type="E")
 g4_us<-ggplot(fig4_us, aes(y=sE,x=Date)) +geom_line( aes(y=sE,x=Date,col=type))+
         scale_colour_manual("", values="black",labels = c(expression(sigma*E(t))))+
-        geom_vline(xintercept = fig2_us$Date[days_U],lty=4,color="lightblue")+
+        geom_vline(xintercept = fig2_us$Date[days_U+1],lty=4,color="lightblue")+
         ylab(expression(sigma*E(t)))+
-        geom_point(data=US,aes(x=date, y=nuovi_positivi, fill= "Z(t)"), colour="black",alpha = 3/10)+
-        geom_hline(yintercept = 0,col="grey") +
+        geom_point(data=US,aes(x=date, y=nuovi_positivi, fill= "Z(t)"), colour="black",alpha = 3/10)+geom_hline(yintercept = 0,col="grey")+ ggtitle("US") +
         theme_light() + theme(axis.title.y=element_blank(),
                               legend.title=element_blank()) + 
         theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))
 
-fig4_ic<-data.frame(sE=out.new_Ic[-1,3]/5.2,Date=fig2_ic$Date[-1],type="E")
+fig4_ic<-data.frame(sE=out.new_Ic[,3]/5.2,Date=fig2_ic$Date,type="E")
 g4_ic<-ggplot(fig4_ic, aes(y=sE,x=Date)) +geom_line( aes(y=sE,x=Date,col=type))+
         scale_colour_manual("", values="black",labels = c(expression(sigma*E(t))))+
-        geom_vline(xintercept = fig2_ic$Date[days_Ic],lty=4,color="lightblue")+
+        geom_vline(xintercept = fig2_ic$Date[days_Ic+1],lty=4,color="lightblue")+
         ylab(expression(sigma*E(t)))+
         geom_point(data=Iceland,aes(x=date, y=nuovi_positivi, fill= "Z(t)"), colour="black",alpha = 3/10)+
-        geom_hline(yintercept = 0,col="grey") +
+        geom_hline(yintercept = 0,col="grey") +ggtitle("Iceland") +
         theme_light() + theme(axis.title.y=element_blank(),
                               legend.title=element_blank()) + 
         theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))
@@ -565,7 +553,7 @@ g5<-ggplot(dataRO, aes(y=RO,x=Date)) +
 g5
 ```
 
-    ## Warning: Removed 67 row(s) containing missing values (geom_path).
+    ## Warning: Removed 68 row(s) containing missing values (geom_path).
 
 ![](main_analysis_files/figure-gfm/figure5-1.png)<!-- -->
 
@@ -574,7 +562,7 @@ pdf("figure5.pdf")
 g5 
 ```
 
-    ## Warning: Removed 67 row(s) containing missing values (geom_path).
+    ## Warning: Removed 68 row(s) containing missing values (geom_path).
 
 ``` r
 dev.off.crop()
